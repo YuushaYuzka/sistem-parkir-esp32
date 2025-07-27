@@ -1,0 +1,115 @@
+#define BLYNK_TEMPLATE_ID "TMPL6om5xTmBO"
+#define BLYNK_TEMPLATE_NAME "Sistemparkir"
+#define BLYNK_AUTH_TOKEN "9Sm0pcBUHc2Au3l16GloN3alxJzLbX9Z"
+
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <BlynkSimpleEsp32.h>
+
+char ssid[] = "Evi Yusfahani";
+char pass[] = "burhan1320";
+
+// HC-SR04
+const int trigPin1 = 5;
+const int echoPin1 = 18;
+const int trigPin2 = 26;
+const int echoPin2 = 25;
+
+
+const int ledPin1 = 15;
+const int ledPin2 = 2;
+
+
+
+#define SOUND_SPEED 0.034
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+void setup() {
+  Serial.begin(115200);
+  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+
+  pinMode(trigPin1, OUTPUT);
+  pinMode(trigPin2, OUTPUT);
+
+
+  pinMode(echoPin1, INPUT);
+  pinMode(echoPin2, INPUT);
+
+
+  pinMode(ledPin1, OUTPUT);
+  pinMode(ledPin2, OUTPUT);
+  
+
+
+  lcd.init();
+  lcd.backlight();
+}
+
+void loop() {
+  Blynk.run(); // Harus dipanggil di loop
+  int totalSlots = 3;
+  int availableSlots = 0;
+
+  if (readSensor(trigPin1, echoPin1)) {
+    availableSlots++; 
+    digitalWrite(ledPin1, HIGH); // Kosong → nyalakan LED
+    Blynk.virtualWrite(V1, "Kosong");
+  } else {
+    digitalWrite(ledPin1, LOW);  // Terisi → matikan LED
+    Blynk.virtualWrite(V1, "Terisi");
+  }
+  delay(100);
+
+  if (readSensor(trigPin2, echoPin2)) {
+    availableSlots++;
+    digitalWrite(ledPin2, HIGH);
+    Blynk.virtualWrite(V2, "Kosong");
+  } else {
+    digitalWrite(ledPin2, LOW);
+    Blynk.virtualWrite(V2, "Terisi");
+  }
+  delay(100);
+
+
+  Serial.print("Sisa slot parkir: ");
+  Serial.println(availableSlots);
+
+  Blynk.virtualWrite(V0, availableSlots);
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Sisa Slot:");
+  lcd.setCursor(0, 1);
+  lcd.print(availableSlots);
+  lcd.print("/");
+  lcd.print(totalSlots);
+
+
+  delay(1000);
+}
+
+bool readSensor(int trigPin, int echoPin) {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  long duration = pulseIn(echoPin, HIGH);
+
+  float distanceCm = duration * SOUND_SPEED / 2;
+
+  Serial.print("Distance (cm): ");
+  Serial.println(distanceCm);
+
+  if (distanceCm > 30) {
+    return true; // Slot kosong
+  } else {
+    return false; // Slot terisi
+  }
+}

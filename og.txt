@@ -1,0 +1,105 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+// HC-SR04
+const int trigPin1 = 5;
+const int echoPin1 = 18;
+const int trigPin2 = 26;
+const int echoPin2 = 25;
+const int trigPin3 = 32;
+const int echoPin3 = 35;
+
+const int ledPin1 = 15;
+const int ledPin2 = 2;
+const int ledPin3 = 0;
+
+
+#define SOUND_SPEED 0.034
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(trigPin1, OUTPUT);
+  pinMode(trigPin2, OUTPUT);
+  // pinMode(trigPin3, OUTPUT);
+
+  pinMode(echoPin1, INPUT);
+  pinMode(echoPin2, INPUT);
+  // pinMode(echoPin3, INPUT);
+
+  pinMode(ledPin1, OUTPUT);
+  pinMode(ledPin2, OUTPUT);
+  // pinMode(ledPin3, OUTPUT);
+
+
+  lcd.init();
+  lcd.backlight();
+}
+
+void loop() {
+  int totalSlots = 3;
+  int availableSlots = 0;
+
+  if (readSensor(trigPin1, echoPin1)) {
+    availableSlots++; 
+    digitalWrite(ledPin1, HIGH); // Kosong → nyalakan LED
+  } else {
+    digitalWrite(ledPin1, LOW);  // Terisi → matikan LED
+  }
+  delay(100);
+
+  if (readSensor(trigPin2, echoPin2)) {
+    availableSlots++;
+    digitalWrite(ledPin2, HIGH);
+  } else {
+    digitalWrite(ledPin2, LOW);
+  }
+  delay(100);
+
+  // if (readSensor(trigPin3, echoPin3)) {
+  //   availableSlots++;
+  //   digitalWrite(ledPin3, HIGH);
+  // } else {
+  //   digitalWrite(ledPin3, LOW);
+  // }
+  // delay(100);
+
+  Serial.print("Sisa slot parkir: ");
+  Serial.println(availableSlots);
+
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Sisa Slot:");
+  lcd.setCursor(0, 1);
+  lcd.print(availableSlots);
+  lcd.print("/");
+  lcd.print(totalSlots);
+
+
+  delay(1000);
+}
+
+bool readSensor(int trigPin, int echoPin) {
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  long duration = pulseIn(echoPin, HIGH);
+
+  float distanceCm = duration * SOUND_SPEED / 2;
+
+  Serial.print("Distance (cm): ");
+  Serial.println(distanceCm);
+
+  if (distanceCm > 30) {
+    return true; // Slot kosong
+  } else {
+    return false; // Slot terisi
+  }
+}
+
